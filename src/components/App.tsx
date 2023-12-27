@@ -1,14 +1,21 @@
 import { useState, useEffect } from 'react'
 import { TFeedbackItem } from '../lib/types'
-import Footer from './Footer'
-import Container from './Container'
-import HashtagList from './HashtagList'
+import Footer from './layout/Footer'
+import Container from './layout/Container'
+import HashtagList from './hashtag/HashtagList'
 function App () {
   const [feedbackItems, setFeedbackItems] = useState<TFeedbackItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
-  const handleAddToList = (text: string) => {
+  const companyList = feedbackItems
+    .map(item => item.company)
+    .filter((company, index, array) => {
+      //filter out duplicates
+      return array.indexOf(company) === index
+    })
+
+  const handleAddToList = async (text: string) => {
     const companyName = text
       .split(' ')
       .find(word => word.includes('#'))!
@@ -18,12 +25,22 @@ function App () {
       id: new Date().getTime(),
       upvoteCount: 0,
       badgeLetter: companyName.substring(0, 1).toUpperCase(),
-      companyName: companyName,
+      company: companyName,
       text: text,
       daysAgo: 0
     }
     //spread operator to add new item to the list
     setFeedbackItems([...feedbackItems, newItem])
+    await fetch(
+      'https://bytegrad.com/course-assets/projects/corpcomment/api/feedbacks',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newItem)
+      }
+    )
   }
 
   useEffect(() => {
@@ -59,7 +76,7 @@ function App () {
         feedbackItems={feedbackItems}
         handleAddToList={handleAddToList}
       />
-      <HashtagList />
+      <HashtagList companyList={companyList} />
     </div>
   )
 }
